@@ -77,7 +77,7 @@ io.on('connection', (socket) => {
   socket.emit('stateUpdated', appState); // Sync current state immediately upon load
 });
 
-const PORT = 3000;
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Supermarket App running at http://localhost:${PORT}`);
+const port = process.env.PORT
+httpServer.listen(port, () => {
+  console.log(`🚀 Supermarket App running at http://localhost:${port}`);
 });
