@@ -12,11 +12,13 @@ const io = new Server(httpServer);
 app.use(express.json({ limit: '10mb' })); // Allows base64 poster uploads
 
 // In-Memory App State
+// In-Memory App State Configuration
 let appState = {
-  backgroundImage: 'https://unsplash.com', // Default backup image
+  backgroundImage: 'https://unsplash.com',
   theme: {
-    bg: '#ffffff',
-    text: '#111827'
+    gradient: 'linear-gradient(135deg, #ffffff, #f3f4f6)', // Swapped single string color out for system gradient mapping
+    text: '#111827',
+    shadow: 'rgba(0, 0, 0, 0.15)'
   },
   products: [
     { id: 'p1', name: 'Potato Big', price: '0.275', top: 5, left: 5, width: 28, height: 28, isVisible: false },
