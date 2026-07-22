@@ -14,12 +14,31 @@ export interface House {
   label: string
   // Whether this house is intended to hold text (vs. just a layout cell).
   kind: 'text' | 'image' | 'spacer'
+  // What downstream renderer data this house is bound to.
+  fieldRole: FieldRole
   // Per-house typographic settings (for text houses).
   typography?: Typography
   // Edge density (0-1) captured by the Grid Definer at detection time —
   // useful for debugging and for the user to understand the classification.
   edgeDensity?: number
   aspectRatio?: number
+}
+
+export type FieldRole =
+  | 'product_image'
+  | 'product_name'
+  | 'unit'
+  | 'price'
+  | 'offer'
+  | 'decorative'
+
+export const FIELD_ROLE_LABELS: Record<FieldRole, string> = {
+  product_image: 'Product Image',
+  product_name: 'Product Name',
+  unit: 'Unit',
+  price: 'Price',
+  offer: 'Offer / Badge',
+  decorative: 'Decorative (no data)',
 }
 
 export interface Typography {

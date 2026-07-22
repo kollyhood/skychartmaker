@@ -33,6 +33,7 @@ function toHouse(d: DetectedHouse, index: number): House {
     w: d.w,
     h: d.h,
     kind: d.kind,
+    fieldRole: 'decorative',
     edgeDensity: d.edgeDensity,
     aspectRatio: d.aspectRatio,
   }
@@ -150,6 +151,10 @@ function applyDetectedFonts(houses: House[], fonts: DetectedFont[]): House[] {
   })
 }
 
+function clampPct(v: number): number {
+  return Math.max(0, Math.min(100, v))
+}
+
 function intersectionArea(
   a: { x: number; y: number; w: number; h: number },
   b: { x: number; y: number; w: number; h: number },
@@ -227,6 +232,8 @@ interface TailorState {
   progress: string | null
   // right-click context menu state
   contextMenu: { x: number; y: number; open: boolean; houseId: string | null }
+  // in-progress click-and-drag House draft (click-to-draw on empty canvas)
+  draftRect: { startX: number; startY: number; x: number; y: number; w: number; h: number } | null
 
   // actions
   uploadImage: (img: UploadedImage) => Promise<void>
@@ -238,6 +245,9 @@ interface TailorState {
   duplicateHouse: (id: string) => void
   deleteHouse: (id: string) => void
   addHouseAt: (xPct: number, yPct: number) => void
+  beginDraft: (xPct: number, yPct: number) => void
+  updateDraft: (xPct: number, yPct: number) => void
+  commitDraft: () => void
   toggleGridOverlay: (v?: boolean) => void
   toggleFontPanel: (v?: boolean) => void
   setContextMenu: (c: Partial<TailorState['contextMenu']>) => void
@@ -268,7 +278,7 @@ export const useTailor = create<TailorState>((set, get) => ({
       id: uuid(),
       role: 'assistant',
       content:
-        'Step 1 — drop a raw, uncropped image of the layout you want to mimic into the canvas on the right. The Grid Definer will run contour detection and the Font Hunter will run real OCR + font matching.',
+        'Step 1 — drop a raw, uncropped image of the layout you want to mimic into the canvas on the right. You’ll draw a box for each region by hand — product image, name, unit, price, offer.',
       timestamp: Date.now(),
       cta: { label: 'Upload an image →', action: 'focus-upload' },
     },
@@ -278,6 +288,7 @@ export const useTailor = create<TailorState>((set, get) => ({
   publishedStageLabel: null,
   progress: null,
   contextMenu: { x: 0, y: 0, open: false, houseId: null },
+  draftRect: null,
 
   uploadImage: async (img) => {
     set({ stage: 'uploading', image: img })
@@ -286,7 +297,7 @@ export const useTailor = create<TailorState>((set, get) => ({
       content: `Uploaded "${img.name}" (${img.width}×${img.height}).`,
     })
 
-    // Build an HTMLImageElement so the Grid Definer can rasterize it.
+    // Build an HTMLImageElement so the canvas/publisher can rasterize it.
     const el = new window.Image()
     el.crossOrigin = 'anonymous'
     await new Promise<void>((resolve, reject) => {
@@ -294,14 +305,13 @@ export const useTailor = create<TailorState>((set, get) => ({
       el.onerror = () => reject(new Error('Failed to load image'))
       el.src = img.src
     })
-    set({ imageElement: el })
+    set({ imageElement: el, houses: [], stage: 'override' })
 
     get().pushChat({
       role: 'assistant',
       content:
-        'Got it. Running the ingestion engine now — contour detection first, then VLM-based font matching. Watch the canvas for the translucent blue Houses to appear.',
+        'Image loaded. Draw boxes on the canvas for each region — product image, name, unit, price, offer.',
     })
-    await get().analyze()
   },
 
   analyze: async () => {
@@ -415,6 +425,50 @@ export const useTailor = create<TailorState>((set, get) => ({
       w,
       h,
       kind: 'text',
+      fieldRole: 'decorative',
+      typography: { ...DEFAULT_TYPOGRAPHY, fontFamily: 'Geist', fontSize: 22 },
+    }
+    set((s) => ({ houses: [...s.houses, newHouse], selectedHouseId: newHouse.id }))
+  },
+
+  beginDraft: (xPct, yPct) => {
+    const x = clampPct(xPct)
+    const y = clampPct(yPct)
+    set({ draftRect: { startX: x, startY: y, x, y, w: 0, h: 0 } })
+  },
+
+  updateDraft: (xPct, yPct) => {
+    const d = get().draftRect
+    if (!d) return
+    const curX = clampPct(xPct)
+    const curY = clampPct(yPct)
+    set({
+      draftRect: {
+        ...d,
+        x: Math.min(d.startX, curX),
+        y: Math.min(d.startY, curY),
+        w: Math.abs(curX - d.startX),
+        h: Math.abs(curY - d.startY),
+      },
+    })
+  },
+
+  commitDraft: () => {
+    const d = get().draftRect
+    set({ draftRect: null })
+    if (!d) return
+    // Ignore accidental clicks / tiny drags — treat as a click, not a draw.
+    const MIN_DRAW = 3
+    if (d.w < MIN_DRAW || d.h < MIN_DRAW) return
+    const newHouse: House = {
+      id: uuid(),
+      label: 'New Block',
+      x: d.x,
+      y: d.y,
+      w: d.w,
+      h: d.h,
+      kind: 'text',
+      fieldRole: 'decorative',
       typography: { ...DEFAULT_TYPOGRAPHY, fontFamily: 'Geist', fontSize: 22 },
     }
     set((s) => ({ houses: [...s.houses, newHouse], selectedHouseId: newHouse.id }))
@@ -509,6 +563,7 @@ export const useTailor = create<TailorState>((set, get) => ({
       publishedStageLabel: null,
       progress: null,
       contextMenu: { x: 0, y: 0, open: false, houseId: null },
+      draftRect: null,
       chat: [
         {
           id: uuid(),

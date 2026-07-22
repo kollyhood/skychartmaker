@@ -38,6 +38,7 @@ export function RightPane() {
   const image = useTailor((s) => s.image)
   const houses = useTailor((s) => s.houses)
   const selectedHouseId = useTailor((s) => s.selectedHouseId)
+  const draftRect = useTailor((s) => s.draftRect)
   const showGridOverlay = useTailor((s) => s.showGridOverlay)
   const showFontPanel = useTailor((s) => s.showFontPanel)
   const toggleGridOverlay = useTailor((s) => s.toggleGridOverlay)
@@ -83,6 +84,49 @@ export function RightPane() {
     const yPct = ((e.clientY - rect.top) / rect.height) * 100
     useTailor.getState().addHouseAt(xPct, yPct)
   }
+
+  // Click-and-drag to draw a new House from scratch on empty canvas. Once a
+  // draft starts, tracking moves to window-level listeners (rather than
+  // relying on setPointerCapture) so the drag keeps working even if the
+  // pointer momentarily leaves the canvas bounds mid-gesture.
+  const isDrafting = useTailor((s) => !!s.draftRect)
+
+  const onCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (stage !== 'override') return
+    if (e.button !== 0) return // left-click only; right-click keeps the quick-add flow
+    if ((e.target as HTMLElement).closest('[data-house-id]')) return
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100
+    const yPct = ((e.clientY - rect.top) / rect.height) * 100
+    useTailor.getState().beginDraft(xPct, yPct)
+  }
+
+  React.useEffect(() => {
+    if (!isDrafting) return
+    const toPct = (clientX: number, clientY: number) => {
+      const rect = canvasRef.current?.getBoundingClientRect()
+      if (!rect) return null
+      return {
+        xPct: ((clientX - rect.left) / rect.width) * 100,
+        yPct: ((clientY - rect.top) / rect.height) * 100,
+      }
+    }
+    const onMove = (e: PointerEvent) => {
+      const pct = toPct(e.clientX, e.clientY)
+      if (!pct) return
+      useTailor.getState().updateDraft(pct.xPct, pct.yPct)
+    }
+    const onUp = () => {
+      useTailor.getState().commitDraft()
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [isDrafting])
 
   return (
     <div className="flex h-full flex-col bg-slate-100">
@@ -162,7 +206,11 @@ export function RightPane() {
             id="tailor-canvas-shell"
             ref={canvasRef}
             onContextMenu={onCanvasContextMenu}
-            className="relative mx-auto h-full max-h-full w-full overflow-hidden rounded-xl bg-white shadow-[0_8px_40px_-12px_rgba(0,0,0,0.15)] ring-1 ring-slate-200"
+            onPointerDown={onCanvasPointerDown}
+            className={cn(
+              'relative mx-auto h-full max-h-full w-full overflow-hidden rounded-xl bg-white shadow-[0_8px_40px_-12px_rgba(0,0,0,0.15)] ring-1 ring-slate-200',
+              stage === 'override' && 'cursor-crosshair',
+            )}
           >
             {/* Image layer */}
             {image && (
@@ -190,13 +238,26 @@ export function RightPane() {
                 ))}
               </div>
             )}
+
+            {/* Live preview of the House currently being drawn */}
+            {draftRect && (
+              <div
+                className="pointer-events-none absolute z-30 rounded-md border-2 border-dashed border-primary bg-primary/10"
+                style={{
+                  left: `${draftRect.x}%`,
+                  top: `${draftRect.y}%`,
+                  width: `${draftRect.w}%`,
+                  height: `${draftRect.h}%`,
+                }}
+              />
+            )}
           </div>
         )}
 
         {/* Right-click hint banner */}
         {stage === 'override' && (
           <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-slate-900/85 px-3 py-1.5 text-[11px] font-medium text-white shadow-lg backdrop-blur">
-            Right-click empty space to add · Right-click a house to duplicate / delete
+            Click and drag to draw a House · Right-click for a quick fixed-size add · Right-click a house to duplicate / delete
           </div>
         )}
       </div>
@@ -280,7 +341,7 @@ function EmptyDropZone({ onPick }: { onPick: () => void }) {
             Drop a flyer, ad, or Pinterest screenshot
           </div>
           <div className="mt-1 text-xs text-slate-500">
-            Raw and uncropped is fine — we&rsquo;ll snap to a clean matrix automatically.
+            Raw and uncropped is fine — you&rsquo;ll draw the House boxes by hand.
           </div>
         </div>
         <div className="mt-2 flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-[11px] text-slate-500">
