@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Skysix Product Card — Preview Harness</title>
+<link rel="stylesheet" href="card.css" />
+<style>
+  /* -------------------------------------------------------------------
+     Preview-harness-only styling. Everything in this <style> block, plus
+     the .tv-frame / .tv-stage / .tv-safe-area markup below, is scaffolding
+     for reviewing the card in isolation — none of it is part of the
+     render template contract. Safe to delete this whole file once a
+     variation is picked and wired into Remote/Renderer.
+     ------------------------------------------------------------------- */
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #0f1115;
+    color: #e7e9ee;
+    padding: 32px;
+    --preview-scale: 0.24;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.subtitle { margin: 0 0 28px; color: #9aa1ad; font-size: 14px; max-width: 720px; }
+  code { background: #1b1e26; padding: 1px 6px; border-radius: 4px; }
+
+  .columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+  }
+  .column { flex: 0 0 auto; }
+  .column__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .column__header h2 { font-size: 16px; margin: 0; }
+  .column__header select {
+    font-size: 13px;
+    padding: 4px 8px;
+    background: #1b1e26;
+    color: #e7e9ee;
+    border: 1px solid #333844;
+    border-radius: 6px;
+  }
+
+  /* 1920x1080 "TV" stage, scaled down uniformly via transform so the card's
+     px-based sizing (calibrated for a real 1080p screen) previews
+     accurately instead of being laid out fresh at a small size. */
+  .tv-frame {
+    width: calc(1920px * var(--preview-scale));
+    height: calc(1080px * var(--preview-scale));
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px #262a33;
+    background: #000;
+  }
+  .tv-stage {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    transform: scale(var(--preview-scale));
+    transform-origin: top left;
+  }
+  .tv-stage__mount {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* TV-safe-area guide — dashed overlay 5% in from each edge so you can
+     sanity-check that nothing critical sits too close to the bezel.
+     Delete this rule block and the .tv-safe-area div below once no
+     longer needed. */
+  /* Border width / label size are expressed as calc(target / --preview-scale)
+     so that after .tv-stage's transform: scale(--preview-scale) shrinks
+     everything back down, they land at a legible on-screen size instead of
+     a sub-pixel line that anti-aliases away. */
+  .tv-safe-area {
+    position: absolute;
+    inset: 5%;
+    border: calc(3px / var(--preview-scale)) dashed rgba(255, 255, 255, 0.75);
+    pointer-events: none;
+    z-index: 5;
+  }
+  .tv-safe-area::after {
+    content: "TV safe area (5%)";
+    position: absolute;
+    top: calc(-34px / var(--preview-scale));
+    left: 0;
+    font-size: calc(13px / var(--preview-scale));
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 900px) {
+    .columns { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+  <h1>Skysix Product Card — Variant Preview</h1>
+  <p class="subtitle">
+    Static harness, no build step — loads <code>card.css</code> and <code>card.js</code> directly.
+    Use each dropdown to swap the mock payload shown in that column.
+  </p>
+
+  <div class="columns">
+    <section class="column" data-variant="burst">
+      <div class="column__header">
+        <h2>Burst — starburst price medallion</h2>
+        <select data-mock-select></select>
+      </div>
+      <div class="tv-frame">
+        <div class="tv-stage">
+          <div class="tv-stage__mount" data-mount></div>
+          <div class="tv-safe-area"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="column" data-variant="banner">
+      <div class="column__header">
+        <h2>Banner — full-width price strip</h2>
+        <select data-mock-select></select>
+      </div>
+      <div class="tv-frame">
+        <div class="tv-stage">
+          <div class="tv-stage__mount" data-mount></div>
+          <div class="tv-safe-area"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="column" data-variant="block">
+      <div class="column__header">
+        <h2>Block — accent side panel</h2>
+        <select data-mock-select></select>
+      </div>
+      <div class="tv-frame">
+        <div class="tv-stage">
+          <div class="tv-stage__mount" data-mount></div>
+          <div class="tv-safe-area"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import { renderCard } from './card.js';
+
+    // Inline SVG data URIs so the harness never makes a network request for
+    // "product photos" — deterministic and works offline.
+    function mockImage(bg, fg) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+        <rect width="400" height="400" fill="${bg}"/>
+        <circle cx="200" cy="168" r="92" fill="${fg}"/>
+        <rect x="70" y="272" width="260" height="28" rx="14" fill="${fg}" opacity="0.55"/>
+      </svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+
+    const NOW = new Date().toISOString();
+
+    // ---- Mock payloads (see PAYLOAD SCHEMA) ----
+    const MOCKS = {
+      normal: {
+        label: 'Normal — short name, image, offer + discount',
+        payload: {
+          product_name: 'Fresh Tomatoes',
+          unit: 'kg',
+          price: 42,
+          image_url: mockImage('#ffe3d1', '#e0263d'),
+          offer_text: '4kg for ₹150',
+          discount_percent: 20,
+          business_name: 'Sharma General Store',
+          business_phone: '+91 98765 43210',
+          updated_at: NOW,
+        },
+      },
+      edge: {
+        label: 'Edge — long name, no image, no offer',
+        payload: {
+          product_name: 'Organic Country Tomatoes - Farm Fresh Grade A',
+          unit: 'kg',
+          price: 68,
+          image_url: null,
+          offer_text: null,
+          discount_percent: null,
+          business_name: 'Sharma General Store',
+          business_phone: null,
+          updated_at: NOW,
+        },
+      },
+      minimal: {
+        label: 'Minimal — no offer/discount, has image',
+        payload: {
+          product_name: 'Milk',
+          unit: 'litre',
+          price: 30,
+          image_url: mockImage('#dbe9ff', '#1d4fa3'),
+          offer_text: null,
+          discount_percent: null,
+          business_name: 'Sharma General Store',
+          business_phone: '+91 98765 43210',
+          updated_at: NOW,
+        },
+      },
+    };
+
+    // Default each column to a different mock so all three are visible on load.
+    const DEFAULTS = { burst: 'normal', banner: 'edge', block: 'minimal' };
+
+    document.querySelectorAll('.column').forEach((column) => {
+      const variant = column.dataset.variant;
+      const select = column.querySelector('[data-mock-select]');
+      const mount = column.querySelector('[data-mount]');
+
+      Object.entries(MOCKS).forEach(([key, mock]) => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = mock.label;
+        select.appendChild(opt);
+      });
+
+      const render = () => {
+        mount.innerHTML = renderCard(MOCKS[select.value].payload, { variant });
+      };
+
+      select.value = DEFAULTS[variant];
+      select.addEventListener('change', render);
+      render();
+    });
+  </script>
+</body>
+</html>

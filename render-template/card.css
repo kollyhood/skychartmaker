@@ -1,0 +1,373 @@
+/* =============================================================================
+   Skysix Display — Product Card render template styles.
+
+   All themeable values are CSS custom properties declared on :root so a
+   future vertical can reskin (colors, type scale) without touching any
+   layout rule below. Sizes are calibrated for a 1920x1080 reference frame;
+   scale the whole card by overriding --card-font-scale rather than editing
+   individual rules.
+   ============================================================================= */
+
+:root {
+  --card-bg: #ffffff;
+  --card-surface: #f4f5f7;
+  --card-placeholder-bg: #eceef1;
+  --card-text-color: #14181f;
+  --card-muted-color: #5b6472;
+  --card-accent-color: #e0263d;
+  --card-accent-color-strong: #a3182a;
+  --card-on-accent-color: #ffffff;
+  --card-border-color: #e2e4e8;
+  --card-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --card-font-scale: 1;
+  --card-radius: 28px;
+  --card-radius-sm: 16px;
+  --card-safe-padding: 5%;
+}
+
+/* -----------------------------------------------------------------------
+   Reset & base — shared by every variant
+   ----------------------------------------------------------------------- */
+
+.card, .card *, .card *::before, .card *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+.card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  color: var(--card-text-color);
+  font-family: var(--card-font-family);
+  padding: var(--card-safe-padding);
+  gap: calc(20px * var(--card-font-scale));
+}
+.card h1 {
+  font: inherit;
+  line-height: 1.15;
+}
+
+/* -----------------------------------------------------------------------
+   Shared media / placeholder
+   ----------------------------------------------------------------------- */
+
+.card__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card__image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(12px * var(--card-font-scale));
+  background: var(--card-placeholder-bg);
+  color: var(--card-muted-color);
+}
+.card__placeholder-icon {
+  width: 22%;
+  max-width: 140px;
+  height: auto;
+}
+.card__placeholder-label {
+  font-size: calc(24px * var(--card-font-scale));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* -----------------------------------------------------------------------
+   Shared footer — thin branding strip
+   ----------------------------------------------------------------------- */
+
+.card__footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(16px * var(--card-font-scale));
+  padding-top: calc(14px * var(--card-font-scale));
+  border-top: 2px solid var(--card-border-color);
+}
+.card__footer-business {
+  font-size: calc(28px * var(--card-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.card__footer-phone {
+  font-size: calc(24px * var(--card-font-scale));
+  color: var(--card-muted-color);
+  font-weight: 500;
+}
+
+/* =============================================================================
+   Variant: Burst — split media/info, price inside a starburst medallion
+   ============================================================================= */
+
+.card--burst {
+  flex-direction: row;
+  align-items: stretch;
+}
+.card--burst .card__media-burst {
+  position: relative;
+  flex: 0 0 54%;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  background: var(--card-placeholder-bg);
+}
+.card--burst .card__burst-badge {
+  position: absolute;
+  top: calc(18px * var(--card-font-scale));
+  right: calc(18px * var(--card-font-scale));
+  min-width: calc(96px * var(--card-font-scale));
+  padding: calc(10px * var(--card-font-scale)) calc(16px * var(--card-font-scale));
+  border-radius: 999px;
+  background: var(--card-accent-color);
+  color: var(--card-on-accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+.card--burst .card__burst-badge-value {
+  font-size: calc(30px * var(--card-font-scale));
+  font-weight: 800;
+  white-space: nowrap;
+}
+.card--burst .card__info-burst {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(14px * var(--card-font-scale));
+  padding-left: calc(28px * var(--card-font-scale));
+}
+.card--burst .card__unit-burst {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: calc(24px * var(--card-font-scale));
+  font-weight: 700;
+  color: var(--card-muted-color);
+}
+.card--burst .card__name-burst {
+  font-size: calc(58px * var(--card-font-scale));
+  font-weight: 800;
+  line-height: 1.08;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: calc(58px * 1.08 * 2 * var(--card-font-scale));
+}
+.card--burst .card__price-medallion {
+  position: relative;
+  z-index: 0; /* establish a local stacking context so ::before's z-index: -1
+                 stays behind this medallion only, not the whole card */
+  width: calc(220px * var(--card-font-scale));
+  height: calc(220px * var(--card-font-scale));
+  border-radius: 50%;
+  background: var(--card-accent-color);
+  color: var(--card-on-accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: calc(6px * var(--card-font-scale));
+}
+.card--burst .card__price-medallion::before {
+  content: "";
+  position: absolute;
+  inset: -14%;
+  z-index: -1;
+  background: var(--card-accent-color-strong);
+  clip-path: polygon(50% 0%, 63.01% 18.59%, 85.36% 14.65%, 81.41% 37.01%, 100% 50%, 81.41% 62.99%, 85.36% 85.36%, 63.01% 81.41%, 50% 100%, 36.99% 81.41%, 14.65% 85.36%, 18.59% 62.99%, 0% 50%, 18.59% 37.01%, 14.65% 14.65%, 36.99% 18.59%);
+}
+.card--burst .card__price-medallion-value {
+  font-size: calc(46px * var(--card-font-scale));
+  font-weight: 800;
+  padding: 0 10%;
+  text-align: center;
+}
+.card--burst .card__offer-chip-burst {
+  align-self: flex-start;
+  background: var(--card-surface);
+  border: 2px solid var(--card-border-color);
+  border-radius: 999px;
+  padding: calc(8px * var(--card-font-scale)) calc(18px * var(--card-font-scale));
+  font-size: calc(24px * var(--card-font-scale));
+  font-weight: 600;
+}
+
+/* =============================================================================
+   Variant: Banner — stacked media / name / full-width price banner
+   ============================================================================= */
+
+.card--banner {
+  flex-direction: column;
+}
+.card--banner .card__media-banner {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  background: var(--card-placeholder-bg);
+}
+.card--banner .card__ribbon-banner {
+  position: absolute;
+  top: calc(28px * var(--card-font-scale));
+  left: calc(-64px * var(--card-font-scale));
+  width: calc(280px * var(--card-font-scale));
+  padding: calc(10px * var(--card-font-scale)) 0;
+  background: var(--card-accent-color);
+  color: var(--card-on-accent-color);
+  text-align: center;
+  transform: rotate(-38deg);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+.card--banner .card__ribbon-banner span {
+  font-size: calc(26px * var(--card-font-scale));
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.card--banner .card__name-banner {
+  flex: 0 0 auto;
+  font-size: calc(52px * var(--card-font-scale));
+  font-weight: 800;
+  line-height: 1.1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: calc(52px * 1.1 * 2 * var(--card-font-scale));
+}
+.card--banner .card__price-banner {
+  flex: 0 0 auto;
+  border-radius: var(--card-radius-sm);
+  background: var(--card-accent-color);
+  color: var(--card-on-accent-color);
+  padding: calc(20px * var(--card-font-scale)) calc(32px * var(--card-font-scale));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(16px * var(--card-font-scale));
+  flex-wrap: wrap;
+}
+.card--banner .card__price-banner-main {
+  display: flex;
+  align-items: baseline;
+  gap: calc(14px * var(--card-font-scale));
+}
+.card--banner .card__price-banner-value {
+  font-size: calc(84px * var(--card-font-scale));
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.card--banner .card__unit-banner {
+  font-size: calc(30px * var(--card-font-scale));
+  font-weight: 600;
+  opacity: 0.9;
+}
+.card--banner .card__offer-banner {
+  font-size: calc(26px * var(--card-font-scale));
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: calc(8px * var(--card-font-scale)) calc(18px * var(--card-font-scale));
+}
+
+/* =============================================================================
+   Variant: Block — solid accent side panel, plain oversized price text
+   ============================================================================= */
+
+.card--block {
+  flex-direction: column;
+}
+.card--block .card__top-block {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 34% 1fr;
+  gap: calc(24px * var(--card-font-scale));
+}
+.card--block .card__accent-block {
+  border-radius: var(--card-radius);
+  background: var(--card-accent-color);
+  color: var(--card-on-accent-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: calc(16px * var(--card-font-scale));
+  padding: calc(28px * var(--card-font-scale));
+  min-width: 0;
+}
+.card--block .card__discount-pill-block {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: calc(8px * var(--card-font-scale)) calc(18px * var(--card-font-scale));
+  font-size: calc(24px * var(--card-font-scale));
+  font-weight: 800;
+}
+.card--block .card__price-block {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--card-font-scale));
+}
+.card--block .card__price-block-value {
+  font-size: calc(88px * var(--card-font-scale));
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  word-break: break-word;
+}
+.card--block .card__unit-block {
+  font-size: calc(28px * var(--card-font-scale));
+  font-weight: 600;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.card--block .card__offer-block {
+  font-size: calc(24px * var(--card-font-scale));
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: calc(12px * var(--card-font-scale));
+  padding: calc(10px * var(--card-font-scale)) calc(14px * var(--card-font-scale));
+}
+.card--block .card__main-block {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(16px * var(--card-font-scale));
+}
+.card--block .card__media-block {
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  background: var(--card-placeholder-bg);
+}
+.card--block .card__name-block {
+  flex: 0 0 auto;
+  font-size: calc(46px * var(--card-font-scale));
+  font-weight: 800;
+  line-height: 1.12;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: calc(46px * 1.12 * 2 * var(--card-font-scale));
+}
