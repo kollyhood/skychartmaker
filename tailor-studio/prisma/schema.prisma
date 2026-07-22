@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless
+// or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A published "stage" — the blank backdrop + house coordinate matrix
+// committed by The Tailor and deployed to the screen network.
+model Stage {
+  id        String   @id @default(cuid())
+  label     String
+  // JSON-stringified array of House objects (id, x, y, w, h, kind, typography)
+  matrix    String
+  // PNG data URL of the blank backdrop (text stripped, dummy items removed)
+  backdrop  String
+  width     Int      @default(1920)
+  height    Int      @default(1080)
+  // Source image metadata (for audit trail)
+  sourceName    String?
+  sourceWidth   Int?
+  sourceHeight  Int?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
