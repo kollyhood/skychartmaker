@@ -8,12 +8,29 @@ import { Slider } from '@/components/ui/slider'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlignLeft, AlignCenter, AlignRight, Type } from 'lucide-react'
-import type { House, Typography } from '@/lib/tailor/types'
-import { FONT_LIBRARY, PALETTE } from '@/lib/tailor/types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { AlignLeft, AlignCenter, AlignRight, Type, Tag } from 'lucide-react'
+import type { FieldRole, House, Typography } from '@/lib/tailor/types'
+import { FIELD_ROLE_LABELS, FONT_LIBRARY, PALETTE } from '@/lib/tailor/types'
 
 interface Props {
   house: House
+}
+
+// Typography only makes sense for houses bound to a text-bearing field.
+// A house marked as the product image (or as a decorative image slot) has
+// nothing to render text-wise, so we hide the font controls for it.
+function hidesTypography(house: House): boolean {
+  return (
+    house.fieldRole === 'product_image' ||
+    (house.fieldRole === 'decorative' && house.kind === 'image')
+  )
 }
 
 export function TextLabelEditor({ house }: Props) {
@@ -23,16 +40,18 @@ export function TextLabelEditor({ house }: Props) {
   const selectHouse = useTailor((s) => s.selectHouse)
   const showFontPanel = useTailor((s) => s.showFontPanel)
 
-  const typos = house.typography!
+  const typos = house.typography
   const isSelected = selectedHouseId === house.id
+  const showTypePreview = !!typos && !hidesTypography(house)
 
   // Truncate the visible dummy label to maxChars so the rule feels real
-  const visibleLabel = typos.maxChars > 0 ? house.label.slice(0, typos.maxChars) : house.label
-  const overflow = house.label.length > typos.maxChars
+  const visibleLabel =
+    typos && typos.maxChars > 0 ? house.label.slice(0, typos.maxChars) : house.label
+  const overflow = typos ? house.label.length > typos.maxChars : false
 
   // Scale font size relative to the house height so it stays readable.
   // The stored fontSize is px on a 1080-tall canvas baseline.
-  const displayFontPx = Math.max(8, typos.fontSize * (house.h / 100) * 6)
+  const displayFontPx = typos ? Math.max(8, typos.fontSize * (house.h / 100) * 6) : 12
 
   return (
     <Popover>
@@ -49,25 +68,31 @@ export function TextLabelEditor({ house }: Props) {
             isSelected ? 'cursor-text' : 'cursor-pointer hover:bg-blue-500/5',
           )}
         >
-          <div
-            className={cn(
-              'overflow-hidden text-ellipsis whitespace-pre-wrap leading-tight',
-              typos.align === 'center' && 'text-center',
-              typos.align === 'right' && 'text-right',
-              typos.align === 'left' && 'text-left',
-              overflow && 'text-red-500',
-            )}
-            style={{
-              fontFamily: `'${typos.fontFamily}', sans-serif`,
-              fontSize: `${displayFontPx}px`,
-              color: typos.color,
-              letterSpacing: `${typos.letterSpacing}px`,
-              lineHeight: typos.lineHeight,
-              width: '100%',
-            }}
-          >
-            {visibleLabel}
-          </div>
+          {showTypePreview ? (
+            <div
+              className={cn(
+                'overflow-hidden text-ellipsis whitespace-pre-wrap leading-tight',
+                typos!.align === 'center' && 'text-center',
+                typos!.align === 'right' && 'text-right',
+                typos!.align === 'left' && 'text-left',
+                overflow && 'text-red-500',
+              )}
+              style={{
+                fontFamily: `'${typos!.fontFamily}', sans-serif`,
+                fontSize: `${displayFontPx}px`,
+                color: typos!.color,
+                letterSpacing: `${typos!.letterSpacing}px`,
+                lineHeight: typos!.lineHeight,
+                width: '100%',
+              }}
+            >
+              {visibleLabel}
+            </div>
+          ) : (
+            <div className="w-full text-center text-[10px] font-medium uppercase tracking-wide text-blue-700/60">
+              {FIELD_ROLE_LABELS[house.fieldRole]}
+            </div>
+          )}
         </button>
       </PopoverTrigger>
 
@@ -81,6 +106,8 @@ export function TextLabelEditor({ house }: Props) {
           <TypoPanel
             house={house}
             typos={typos}
+            hideTypography={hidesTypography(house)}
+            onFieldRole={(r) => updateHouse(house.id, { fieldRole: r })}
             onTypography={(p) => updateTypography(house.id, p)}
             onLabel={(l) => updateHouse(house.id, { label: l })}
           />
@@ -95,26 +122,41 @@ export function TextLabelEditor({ house }: Props) {
 function TypoPanel({
   house,
   typos,
+  hideTypography,
+  onFieldRole,
   onTypography,
   onLabel,
 }: {
   house: House
-  typos: Typography
+  typos: Typography | undefined
+  hideTypography: boolean
+  onFieldRole: (r: FieldRole) => void
   onTypography: (p: Partial<Typography>) => void
   onLabel: (l: string) => void
 }) {
   return (
     <div className="space-y-3 p-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-900">
-          <Type className="h-3.5 w-3.5 text-primary" />
-          Typography
-        </div>
-        <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-          {house.label}
-        </span>
+      {/* Field role — the first choice, since it decides what else applies */}
+      <div className="space-y-1">
+        <Label className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+          <Tag className="h-3 w-3" />
+          Field role
+        </Label>
+        <Select value={house.fieldRole} onValueChange={(v) => onFieldRole(v as FieldRole)}>
+          <SelectTrigger className="h-7 w-full text-xs" size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(FIELD_ROLE_LABELS) as FieldRole[]).map((r) => (
+              <SelectItem key={r} value={r} className="text-xs">
+                {FIELD_ROLE_LABELS[r]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      <div className="h-px bg-slate-100" />
 
       {/* Label */}
       <div className="space-y-1">
@@ -128,139 +170,157 @@ function TypoPanel({
         />
       </div>
 
-      {/* Font family */}
-      <div className="space-y-1">
-        <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-          Font family
-        </Label>
-        <select
-          value={typos.fontFamily}
-          onChange={(e) => onTypography({ fontFamily: e.target.value })}
-          className="h-7 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
-        >
-          {FONT_LIBRARY.map((f) => (
-            <option key={f} value={f} style={{ fontFamily: f }}>
-              {f}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Size */}
-      <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-            Font size
-          </Label>
-          <span className="text-[10px] font-medium text-slate-700">{typos.fontSize}px</span>
+      {!typos || hideTypography ? (
+        <div className="rounded-md bg-slate-50 px-2.5 py-2 text-[11px] text-slate-500">
+          No typography controls for this field — it doesn&rsquo;t render text.
         </div>
-        <Slider
-          min={8}
-          max={96}
-          step={1}
-          value={[typos.fontSize]}
-          onValueChange={(v) => onTypography({ fontSize: v[0] })}
-        />
-      </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-900">
+              <Type className="h-3.5 w-3.5 text-primary" />
+              Typography
+            </div>
+          </div>
 
-      {/* Letter spacing */}
-      <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-            Letter spacing
-          </Label>
-          <span className="text-[10px] font-medium text-slate-700">{typos.letterSpacing}px</span>
-        </div>
-        <Slider
-          min={-2}
-          max={10}
-          step={0.5}
-          value={[typos.letterSpacing]}
-          onValueChange={(v) => onTypography({ letterSpacing: v[0] })}
-        />
-      </div>
+          {/* Font family */}
+          <div className="space-y-1">
+            <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Font family
+            </Label>
+            <select
+              value={typos.fontFamily}
+              onChange={(e) => onTypography({ fontFamily: e.target.value })}
+              className="h-7 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+            >
+              {FONT_LIBRARY.map((f) => (
+                <option key={f} value={f} style={{ fontFamily: f }}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {/* Max char limit */}
-      <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-            Max character limit
-          </Label>
-          <span
-            className={cn(
-              'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-              house.label.length > typos.maxChars
-                ? 'bg-red-100 text-red-700'
-                : 'bg-slate-100 text-slate-700',
-            )}
-          >
-            {typos.maxChars} chars
-            {house.label.length > typos.maxChars && ' · overflow'}
-          </span>
-        </div>
-        <Slider
-          min={0}
-          max={140}
-          step={1}
-          value={[typos.maxChars]}
-          onValueChange={(v) => onTypography({ maxChars: v[0] })}
-        />
-      </div>
-
-      {/* Alignment */}
-      <div className="space-y-1">
-        <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-          Alignment
-        </Label>
-        <ToggleGroup
-          type="single"
-          value={typos.align}
-          onValueChange={(v) => v && onTypography({ align: v as Typography['align'] })}
-          className="w-full justify-start"
-        >
-          <ToggleGroupItem value="left" className="h-7 w-9" aria-label="Left">
-            <AlignLeft className="h-3.5 w-3.5" />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="center" className="h-7 w-9" aria-label="Center">
-            <AlignCenter className="h-3.5 w-3.5" />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="right" className="h-7 w-9" aria-label="Right">
-            <AlignRight className="h-3.5 w-3.5" />
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-
-      {/* Color palette */}
-      <div className="space-y-1">
-        <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-          Color · <span className="font-mono text-slate-700">{typos.color}</span>
-        </Label>
-        <div className="grid grid-cols-8 gap-1">
-          {PALETTE.map((c) => (
-            <button
-              key={c}
-              onClick={() => onTypography({ color: c })}
-              className={cn(
-                'h-5 w-5 rounded-md border transition-transform hover:scale-110',
-                typos.color.toLowerCase() === c.toLowerCase()
-                  ? 'border-primary ring-2 ring-primary/30'
-                  : 'border-slate-200',
-              )}
-              style={{ backgroundColor: c }}
-              aria-label={`Color ${c}`}
+          {/* Size */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                Font size
+              </Label>
+              <span className="text-[10px] font-medium text-slate-700">{typos.fontSize}px</span>
+            </div>
+            <Slider
+              min={8}
+              max={96}
+              step={1}
+              value={[typos.fontSize]}
+              onValueChange={(v) => onTypography({ fontSize: v[0] })}
             />
-          ))}
-        </div>
-        <div className="mt-2 flex items-center gap-1.5">
-          <input
-            type="color"
-            value={typos.color}
-            onChange={(e) => onTypography({ color: e.target.value })}
-            className="h-6 w-10 cursor-pointer rounded border border-slate-200 bg-white"
-          />
-          <span className="text-[10px] text-slate-500">Custom hex</span>
-        </div>
-      </div>
+          </div>
+
+          {/* Letter spacing */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                Letter spacing
+              </Label>
+              <span className="text-[10px] font-medium text-slate-700">
+                {typos.letterSpacing}px
+              </span>
+            </div>
+            <Slider
+              min={-2}
+              max={10}
+              step={0.5}
+              value={[typos.letterSpacing]}
+              onValueChange={(v) => onTypography({ letterSpacing: v[0] })}
+            />
+          </div>
+
+          {/* Max char limit */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                Max character limit
+              </Label>
+              <span
+                className={cn(
+                  'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                  house.label.length > typos.maxChars
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-slate-100 text-slate-700',
+                )}
+              >
+                {typos.maxChars} chars
+                {house.label.length > typos.maxChars && ' · overflow'}
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={140}
+              step={1}
+              value={[typos.maxChars]}
+              onValueChange={(v) => onTypography({ maxChars: v[0] })}
+            />
+          </div>
+
+          {/* Alignment */}
+          <div className="space-y-1">
+            <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Alignment
+            </Label>
+            <ToggleGroup
+              type="single"
+              value={typos.align}
+              onValueChange={(v) => v && onTypography({ align: v as Typography['align'] })}
+              className="w-full justify-start"
+            >
+              <ToggleGroupItem value="left" className="h-7 w-9" aria-label="Left">
+                <AlignLeft className="h-3.5 w-3.5" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="center" className="h-7 w-9" aria-label="Center">
+                <AlignCenter className="h-3.5 w-3.5" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="right" className="h-7 w-9" aria-label="Right">
+                <AlignRight className="h-3.5 w-3.5" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          {/* Color palette */}
+          <div className="space-y-1">
+            <Label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Color · <span className="font-mono text-slate-700">{typos.color}</span>
+            </Label>
+            <div className="grid grid-cols-8 gap-1">
+              {PALETTE.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => onTypography({ color: c })}
+                  className={cn(
+                    'h-5 w-5 rounded-md border transition-transform hover:scale-110',
+                    typos.color.toLowerCase() === c.toLowerCase()
+                      ? 'border-primary ring-2 ring-primary/30'
+                      : 'border-slate-200',
+                  )}
+                  style={{ backgroundColor: c }}
+                  aria-label={`Color ${c}`}
+                />
+              ))}
+            </div>
+            <div className="mt-2 flex items-center gap-1.5">
+              <input
+                type="color"
+                value={typos.color}
+                onChange={(e) => onTypography({ color: e.target.value })}
+                className="h-6 w-10 cursor-pointer rounded border border-slate-200 bg-white"
+              />
+              <span className="text-[10px] text-slate-500">Custom hex</span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

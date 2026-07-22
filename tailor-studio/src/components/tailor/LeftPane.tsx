@@ -19,8 +19,7 @@ import {
 
 const STAGE_STEPS = [
   { key: 'idle', label: 'Upload' },
-  { key: 'analyzing', label: 'Detect' },
-  { key: 'override', label: 'Refine' },
+  { key: 'override', label: 'Draw' },
   { key: 'publishing', label: 'Publish' },
   { key: 'published', label: 'Deployed' },
 ] as const
@@ -30,14 +29,12 @@ function stageIndex(stage: string): number {
     case 'idle':
     case 'uploading':
       return 0
-    case 'analyzing':
-      return 1
     case 'override':
-      return 2
+      return 1
     case 'publishing':
-      return 3
+      return 2
     case 'published':
-      return 4
+      return 3
     default:
       return 0
   }

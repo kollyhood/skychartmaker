@@ -10,8 +10,27 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { Copy, Trash2, Maximize2 } from 'lucide-react'
-import type { House } from '@/lib/tailor/types'
+import type { FieldRole, House } from '@/lib/tailor/types'
+import { FIELD_ROLE_LABELS } from '@/lib/tailor/types'
 import { TextLabelEditor } from './TextLabelEditor'
+
+const FIELD_ROLE_TAGS: Record<FieldRole, string> = {
+  product_image: 'IMG',
+  product_name: 'NAME',
+  unit: 'QTY',
+  price: '₹',
+  offer: '!',
+  decorative: '—',
+}
+
+const FIELD_ROLE_BADGE_COLOR: Record<FieldRole, string> = {
+  product_image: 'bg-violet-500/90',
+  product_name: 'bg-emerald-500/90',
+  unit: 'bg-amber-500/90',
+  price: 'bg-rose-500/90',
+  offer: 'bg-orange-500/90',
+  decorative: 'bg-slate-400/90',
+}
 
 interface Props {
   house: House
@@ -149,22 +168,24 @@ export function HouseOverlay({ house, selected, canvasRef }: Props) {
             {house.kind === 'spacer' && <span className="opacity-70">· spc</span>}
           </div>
 
-          {/* text dummy label inside (for text houses) */}
-          {house.kind === 'text' && house.typography && (
-            <TextLabelEditor house={house} />
-          )}
+          {/* field-role badge chip */}
+          <div
+            title={FIELD_ROLE_LABELS[house.fieldRole]}
+            className={cn(
+              'pointer-events-none absolute -top-5 right-0 rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white',
+              FIELD_ROLE_BADGE_COLOR[house.fieldRole],
+            )}
+          >
+            {FIELD_ROLE_TAGS[house.fieldRole]}
+          </div>
 
           {/* image houses get a cross-hatch to indicate "image slot" */}
           {house.kind === 'image' && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div
-                className="rounded border border-dashed border-blue-500/40 bg-blue-500/5 p-1 text-[10px] font-medium text-blue-700/70"
-                style={{ width: '60%' }}
-              >
-                image
-              </div>
-            </div>
+            <div className="pointer-events-none absolute inset-2 rounded border border-dashed border-blue-500/40 bg-blue-500/5" />
           )}
+
+          {/* dummy label + field-role editor (text and image houses) */}
+          {house.kind !== 'spacer' && <TextLabelEditor house={house} />}
 
           {/* spacer houses get a diagonal stripe pattern */}
           {house.kind === 'spacer' && (
